@@ -1,0 +1,46 @@
+# Lint once, then test and smoke-test natively on every release platform.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/install-zig.sh
+      - run: zig fmt --check build.zig src
+      - run: sh scripts/install-zlint.sh
+      - run: .zig-cache/tools/zlint --config zlint.json --deny-warnings src build.zig
+
+  test:
+    name: test (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: macos-arm64, os: macos-15 }
+          - { platform: macos-x86_64, os: macos-15-intel }
+          - { platform: linux-x86_64, os: ubuntu-24.04 }
+          - { platform: linux-arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/install-zig.sh
+      - run: zig build test --summary all
+      - run: zig build test -Doptimize=ReleaseSafe --summary all
+      - run: zig build -Doptimize=ReleaseSmall
+      # --list exercises system resolver discovery without sending DNS queries.
+      - run: ./zig-out/bin/whichdns --version
+      - run: ./zig-out/bin/whichdns --list > /dev/null

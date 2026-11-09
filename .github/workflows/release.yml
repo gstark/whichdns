@@ -1,0 +1,93 @@
+# Builds a tested binary on each platform for a v* tag and attaches the
+# archives and their checksums to a draft GitHub Release for review.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.platform }})
+    strategy:
+      matrix:
+        include:
+          - { platform: macos-arm64, os: macos-15 }
+          - { platform: macos-x86_64, os: macos-15-intel }
+          - { platform: linux-x86_64, os: ubuntu-24.04, target: x86_64-linux-musl }
+          - { platform: linux-arm64, os: ubuntu-24.04-arm, target: aarch64-linux-musl }
+    runs-on: ${{ matrix.os }}
+    env:
+      ARCHIVE: whichdns-${{ github.ref_name }}-${{ matrix.platform }}.tar.gz
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/install-zig.sh
+
+      - name: Check that the tag matches version.zig
+        run: |
+          version=$(sed -n 's/^pub const string = "\(.*\)";$/\1/p' src/core/version.zig)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version.zig ($version)"
+            exit 1
+          fi
+
+      # The macOS script tests, then links with Apple ld for the smallest binary.
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sh scripts/release-macos.sh
+          mkdir -p staging
+          cp "dist/whichdns-macos-$(uname -m)" staging/whichdns
+
+      # musl gives a static binary that runs on any Linux distribution.
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          zig build test
+          zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseSmall --prefix out
+          mkdir -p staging
+          cp out/bin/whichdns staging/whichdns
+
+      - name: Smoke test
+        run: |
+          test "$(staging/whichdns --version)" = "${GITHUB_REF_NAME#v}"
+          staging/whichdns --list > /dev/null
+
+      - name: Package
+        env:
+          COPYFILE_DISABLE: "1"
+        run: |
+          cp LICENSE README.md staging/
+          tar -czf "$ARCHIVE" -C staging whichdns LICENSE README.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.platform }}
+          path: ${{ env.ARCHIVE }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
+      - name: Write checksums
+        working-directory: release
+        run: sha256sum *.tar.gz > checksums.txt
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "whichdns $GITHUB_REF_NAME" \
+            --generate-notes \
+            --draft

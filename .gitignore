@@ -1,0 +1,67 @@
+# Build outputs
+build/
+cmake-build-*/
+out/
+dist/
+
+# Zig build/cache outputs
+.zig-cache/
+zig-cache/
+zig-out/
+
+# Compiled binaries and libraries
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.lib
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.app/
+*.dSYM/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+compile_commands.json
+
+# Visual Studio / MSVC
+.vs/
+*.user
+*.suo
+*.ncb
+*.opendb
+*.VC.db
+*.vcxproj.user
+
+# Xcode / macOS
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Packet captures and benchmark runs
+captures/

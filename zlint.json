@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DonIsaac/zlint/v0.10.0/zlint.schema.json",
+  "rules": {
+    "avoid-as": "error",
+    "unused-decls": "error",
+    "homeless-try": "error",
+    "no-catch-return": "error",
+    "empty-file": "error",
+    "no-print": "error",
+    "no-unresolved": "error",
+    "unsafe-undefined": "error",
+    "suppressed-errors": "error",
+    "must-return-ref": "error",
+    "case-convention": "error",
+    "allocator-first-param": "error"
+  }
+}
