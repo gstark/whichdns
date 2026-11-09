@@ -99,7 +99,9 @@ pub fn rank(results: []const types.ServerResult, rows: []types.RankedRow) ![]typ
         };
     }
     const ranked = rows[0..results.len];
-    std.mem.sort(types.RankedRow, ranked, {}, rowLessThan);
+    // Insertion sort is fast enough for max_servers rows. std.mem.sort adds
+    // about 7 KB of block-sort code to the release binary.
+    std.sort.insertion(types.RankedRow, ranked, {}, rowLessThan);
     for (ranked, 0..) |*row, i| row.rank = @intCast(i + 1);
     return ranked;
 }
