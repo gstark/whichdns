@@ -42,6 +42,10 @@ lint:
 check: lint test
     zig build
 
+# Write the gstark/tap formula for a published release (default: the latest).
+homebrew tag="":
+    sh scripts/homebrew.sh {{tag}}
+
 # Remove build output.
 clean:
     /bin/rm -rf zig-out .zig-cache
